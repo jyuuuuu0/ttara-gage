@@ -1,0 +1,7 @@
+node_modules
+.next
+.env*.local
+next-env.d.ts
+*.tsbuildinfo
+# 런타임에 쌓이는 제보 데이터 (시드는 data/seed.json)
+data/db.json

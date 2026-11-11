@@ -1,0 +1,48 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Pretendard Variable", Pretendard, -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+  --font-display: "Gasoek One", "Pretendard Variable", sans-serif;
+
+  --color-sleeve: #eef0f7;   /* 바인더 속지 */
+  --color-paper: #ffffff;
+  --color-ink: #1a1b2e;      /* 글자·테두리 */
+  --color-ink-soft: #5b5e78;
+  --color-line: #d9dcea;
+  --color-cobalt: #3b5bff;   /* 행동 */
+  --color-cobalt-deep: #2238c9;
+  --color-pink: #ff5fa2;     /* 성지 핀 */
+  --color-sticker: #ffe14d;  /* 상태 스티커 */
+}
+
+html, body { background: var(--color-sleeve); color: var(--color-ink); }
+::selection { background: var(--color-sticker); }
+:focus-visible { outline: 3px solid var(--color-cobalt); outline-offset: 2px; }
+
+.font-display { font-family: var(--font-display); font-weight: 400; letter-spacing: -0.01em; }
+
+/* ── 상태 스티커 ─────────────────────────────── */
+.sticker {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 3px 9px 3px 8px; border-radius: 6px; font-size: 12px; font-weight: 700;
+  transform: rotate(-3deg); box-shadow: 0 2px 0 rgb(26 27 46 / .18);
+}
+
+/* ── 지도 ────────────────────────────────────── */
+.tg-pin { width: 34px; height: 42px; display: flex; justify-content: center; transition: transform .15s ease; filter: drop-shadow(0 3px 4px rgb(26 27 46 / .35)); }
+.tg-pin span {
+  width: 32px; height: 32px; border-radius: 50% 50% 50% 0; transform: rotate(-45deg);
+  background: var(--color-pink); border: 3px solid #fff; display: flex; align-items: center; justify-content: center;
+}
+.tg-pin span > * { transform: rotate(45deg); }
+.tg-pin b { color: #fff; font-size: 13px; font-weight: 800; }
+.tg-pin.is-dim span { background: #b4b7c9; }
+.tg-pin.is-active { transform: scale(1.2) translateY(-4px); }
+.tg-pin.is-active span { background: var(--color-ink); }
+.leaflet-container { font-family: var(--font-sans); background: #e9ebf2; }
+.leaflet-tooltip.tg-tip {
+  border: 2px solid var(--color-ink); border-radius: 8px; padding: 4px 9px; font-size: 12px; color: var(--color-ink);
+  box-shadow: 3px 3px 0 var(--color-ink);
+}
+.leaflet-tooltip.tg-tip::before { display: none; }
+.leaflet-control-attribution { font-size: 10px; background: rgb(255 255 255 / .75) !important; border-radius: 6px 0 0 0; }
