@@ -12,13 +12,21 @@ npm run dev   # http://localhost:3000
 
 `.env.local` 에 Supabase 주소와 키가 들어 있어야 한다 (`.env.example` 참고). 이 파일은 깃에 올리지 않는다.
 
+## 배포
+
+- Vercel: https://ttara-gage.vercel.app (GitHub `main` 에 push 하면 자동 배포, 함수 리전 `icn1`)
+- 환경변수는 Vercel > Settings > Environment Variables 에 `.env.local` 과 같은 값을 넣는다.
+- Vercel 화면에서 Supabase 연동 버튼을 누르면 새 Supabase 프로젝트가 따로 생기니 쓰지 않는다.
+
 ## Supabase
 
 - 프로젝트: `ttara-gage` (서울 리전, 무료 플랜)
 - 스키마: `supabase/migrations/0001_init.sql` — 테이블, RLS, 상태 트리거, 제보 속도 제한
 - 예시 데이터: `supabase/seed.sql` — 데모 아이돌(가상 가게 9곳), 최연준(성지 없음)
 - 새 프로젝트에 다시 만들 땐 대시보드 > SQL Editor 에서 두 파일을 차례로 실행
-- 로그인: Google (Supabase Auth). 리디렉션 허용 주소에 `http://localhost:3000/**` 등록됨. 배포하면 배포 주소도 추가해야 한다.
+- 로그인: Google (Supabase Auth). 리디렉션 허용 주소에 `http://localhost:3000/**`, `https://ttara-gage.vercel.app/**` 등록됨. 새 배포 주소가 생기면 Supabase > Authentication > URL Configuration 에 추가해야 한다.
+- Google OAuth 앱은 테스트 모드라 Google Cloud > Google 인증 플랫폼 > 대상 에 등록한 테스트 사용자만 로그인할 수 있다.
+- 아이돌 목록(`/`)은 누구나 볼 수 있고, 아이돌 성지 페이지(`/idol/[id]`)와 제보·확인·신고는 로그인해야 한다.
 - 권한은 DB(RLS)가 지킨다: 비로그인은 읽기만, 제보는 본인 이름으로만, 상태·확인 수는 트리거만 바꿀 수 있음, 본인 제보 확인 불가, 3명 확인 시 공개, 신고 2건 시 숨김, 1시간 10건 제보 제한
 - `SUPABASE_SECRET_KEY` 는 가게 매칭 결과(spots.match) 저장에만 서버에서 쓴다
 
@@ -44,7 +52,8 @@ npm run dev   # http://localhost:3000
   그리고 서버를 **등록한 고정 IP** 에서 띄운다. (Vercel 같은 서버리스는 IP가 바뀌므로 고정 IP가 있는 서버/프록시 필요)
 - 좌표는 TM128 → WGS84 로 변환해서 지도에 찍는다 (`src/lib/geo.ts`).
 - 결과는 매출 상위 최대 100건·페이징 없음 → 가게명 + 지역을 같이 넣어 검색하고, `src/lib/match.ts` 의 유사도로 가장 맞는 가게를 고른다.
-- 출처 표기 "eat.pl 잇플 · BC카드 결제 데이터 기반" 은 푸터에 노출된다. 1% 미만 랭킹은 소수점 유지 (`src/lib/format.ts`).
+- 1% 미만 랭킹은 소수점을 유지한다 (`src/lib/format.ts`).
+- 지금은 화면에 데이터 출처 문구를 표시하지 않는다. 실제 API(live 모드)로 전환할 때 제휴 조건에 출처 표기가 있으면 푸터에 다시 넣는다.
 
 ## 운영 원칙 (사생활 보호)
 
