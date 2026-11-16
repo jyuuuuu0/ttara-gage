@@ -8,8 +8,7 @@ import { adminClient } from "../supabase/admin";
 import type { SpotRow, SpotMatch } from "./types";
 import type { Viewer } from "../dto";
 
-const keyOf = (m: SpotMatch | null | undefined) =>
-  m?.key ?? (m?.merchant ? { merNm: m.merchant.merNm, merAddr: m.merchant.merAddr } : null);
+const keyOf = (m: SpotMatch | null | undefined) => m?.key ?? null;
 
 /** 동시에 너무 많이 부르지 않도록 n개씩 처리 (프록시 호출 제한 대비) */
 async function mapLimit<T, R>(items: T[], n: number, fn: (t: T) => Promise<R>): Promise<R[]> {
@@ -28,7 +27,8 @@ async function mapLimit<T, R>(items: T[], n: number, fn: (t: T) => Promise<R>): 
 
 /** 아직 매칭 안 한 성지를 잇플 가맹점과 매칭하고, 식별 키만 저장 (관리자 키로 기록) */
 export async function ensureMatched(spots: SpotRow[]): Promise<void> {
-  const todo = spots.filter((s) => !s.match);
+  // match 가 없거나, 예전 버전 형식(key 없음)이면 다시 매칭
+  const todo = spots.filter((s) => !s.match || !("key" in s.match));
   if (!todo.length) return;
   const admin = adminClient();
   await mapLimit(todo, 4, async (s) => {
@@ -40,7 +40,7 @@ export async function ensureMatched(spots: SpotRow[]): Promise<void> {
         score: best?.score ?? 0,
         matchedAt: new Date().toISOString(),
       };
-      const { error } = await admin.from("spots").update({ match }).eq("id", s.id).is("match", null);
+      const { error } = await admin.from("spots").update({ match }).eq("id", s.id);
       if (error) throw error;
       s.match = match;
     } catch (e) {
