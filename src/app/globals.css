@@ -46,3 +46,6 @@ html, body { background: var(--color-sleeve); color: var(--color-ink); }
 }
 .leaflet-tooltip.tg-tip::before { display: none; }
 .leaflet-control-attribution { font-size: 10px; background: rgb(255 255 255 / .75) !important; border-radius: 6px 0 0 0; }
+
+/* OSM 타일을 디자인 톤에 맞게 밝고 차분하게 */
+.tg-tiles { filter: grayscale(0.85) brightness(1.06) contrast(0.92); }
