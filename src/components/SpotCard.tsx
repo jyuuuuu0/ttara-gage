@@ -3,6 +3,7 @@
 import type { SpotDTO } from "@/lib/dto";
 import { formatHHMM, isPeakNow, openState, type KstNow } from "@/lib/hours";
 import { formatRank } from "@/lib/format";
+import { dayChar, yes } from "@/lib/eatpl/types";
 import { Chip, OpenSticker, PeakSticker } from "./Badges";
 
 export default function SpotCard({
@@ -17,7 +18,7 @@ export default function SpotCard({
   threshold: number;
 }) {
   const m = spot.merchant;
-  const visitors = m ? [m.vistCstmrRnkList.rk01, m.vistCstmrRnkList.rk02, m.vistCstmrRnkList.rk03].filter(Boolean) : [];
+  const visitors = m?.vistCstmrRnkList ? [m.vistCstmrRnkList.rk01, m.vistCstmrRnkList.rk02, m.vistCstmrRnkList.rk03].filter(Boolean) : [];
   const peak = m ? isPeakNow(m, now) : false;
 
   return (
@@ -51,11 +52,11 @@ export default function SpotCard({
             </div>
             <div>
               <dt className="text-xs text-ink-soft">쉬는 날</dt>
-              <dd className="font-semibold">{m.hldyDwk.length ? `${m.hldyDwk.join(", ")}요일` : "없음"}</dd>
+              <dd className="font-semibold">{m.hldyDwk?.length ? `${m.hldyDwk.map(dayChar).join(", ")}요일` : "없음"}</dd>
             </div>
             <div>
               <dt className="text-xs text-ink-soft">제일 붐비는 때</dt>
-              <dd className="font-semibold">{m.congestionDwk}요일 {m.congestionTizn}</dd>
+              <dd className="font-semibold">{m.congestionDwk ? `${dayChar(m.congestionDwk)}요일 ${m.congestionTizn ?? ""}` : "정보 없음"}</dd>
             </div>
             <div>
               <dt className="text-xs text-ink-soft">동네 {m.merTpbuzNm} 중</dt>
@@ -64,9 +65,9 @@ export default function SpotCard({
           </dl>
           <div className="mt-4 flex flex-wrap gap-1.5">
             <Chip strong>{m.merTpbuzNm}</Chip>
-            {m.loclPrsnPpltYn === "Y" && <Chip>동네 사람들이 많이 가요</Chip>}
-            {m.frnrVsitYn === "Y" && <Chip>외국인 손님도 와요</Chip>}
-            {m.empyVsitYn === "Y" && <Chip>여럿이 가기 좋아요</Chip>}
+            {yes(m.loclPrsnPpltYn) && <Chip>동네 사람들이 많이 가요</Chip>}
+            {yes(m.frnrVsitYn) && <Chip>외국인 손님도 와요</Chip>}
+            {yes(m.empyVsitYn) && <Chip>여럿이 가기 좋아요</Chip>}
             {visitors.length > 0 && <Chip>주 손님 {visitors.join(", ")}</Chip>}
           </div>
         </>

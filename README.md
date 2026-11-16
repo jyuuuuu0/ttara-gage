@@ -42,18 +42,37 @@ npm run dev   # http://localhost:3000
 
 ## 잇플 API 연동
 
-- `src/lib/eatpl/client.ts` 가 서버에서만 API를 호출한다. 잇플 API는 **사전 등록된 고정 IP** 에서만 호출되므로, 브라우저는 항상 `/api/merchants` 같은 Route Handler를 거친다.
-- 실제 API로 바꾸려면 `.env.local` 에서
-  ```
-  EATPL_MODE=live
-  EATPL_INST_NM=<제휴 시 발급받은 기관명>
-  EATPL_BASE_URL=https://dev-api.paybooc.ai/api/mer
-  ```
-  그리고 서버를 **등록한 고정 IP** 에서 띄운다. (Vercel 같은 서버리스는 IP가 바뀌므로 고정 IP가 있는 서버/프록시 필요)
+`src/lib/eatpl/client.ts` 가 서버에서만 API를 호출한다. 잇플 API는 **사전 등록된 고정 IP** 에서만 호출되므로 브라우저는 항상 `/api/merchants` 같은 Route Handler를 거친다.
+
+### 실제 API로 전환하는 순서
+
+1. 제휴 협의 후 **기관명(instNm)** 을 발급받는다. (문의: bcaimerchant@bccard.com)
+2. 고정 IP 서버를 하나 준비한다. (AWS Lightsail/EC2 + 고정 IP 등)
+3. 그 서버에 `relay/server.mjs` 를 올려 실행하고, 서버 IP를 잇플에 등록한다.
+   ```bash
+   RELAY_SECRET=16자이상_아무_문자열 EATPL_BASE_URL=https://dev-api.paybooc.ai/api/mer PORT=8080 node server.mjs
+   ```
+   의존성이 없는 파일 하나라 Node 18 이상만 있으면 된다. HTTPS는 앞단에 Caddy/Nginx 등을 둔다.
+4. Vercel 환경변수를 바꾸고 다시 배포한다.
+   ```
+   EATPL_MODE=live
+   EATPL_INST_NM=<발급받은 기관명>
+   EATPL_RELAY_URL=https://<중계 서버 주소>
+   EATPL_RELAY_SECRET=<3번과 같은 문자열>
+   ```
+   고정 IP 서버에서 앱을 직접 띄운다면 중계 서버 없이 `EATPL_BASE_URL` 만 쓰면 된다.
+5. 개발 서버로 테스트가 끝나면 운영 주소 `https://api.paybooc.ai/api/mer` 로 바꾼다.
+
+### 응답 처리
+
+- 문서상 `loclPrsnPpltYn`, `frnrVsitYn`, `empyVsitYn` 은 boolean 이다. `"Y"/"N"` 문자열이 와도 `yes()` 로 처리한다.
+- 휴무·혼잡 요일은 `"월"`, `"월요일"` 어느 형식이 와도 첫 글자로 처리한다.
 - 좌표는 TM128 → WGS84 로 변환해서 지도에 찍는다 (`src/lib/geo.ts`).
 - 결과는 매출 상위 최대 100건·페이징 없음 → 가게명 + 지역을 같이 넣어 검색하고, `src/lib/match.ts` 의 유사도로 가장 맞는 가게를 고른다.
+- `rspCode` 가 `00000` 이 아니거나 HTTP 오류면 서버 로그에 응답 앞부분을 남긴다. 첫 연동 때 Vercel > Logs 에서 확인한다.
 - 1% 미만 랭킹은 소수점을 유지한다 (`src/lib/format.ts`).
-- 지금은 화면에 데이터 출처 문구를 표시하지 않는다. 실제 API(live 모드)로 전환할 때 제휴 조건에 출처 표기가 있으면 푸터에 다시 넣는다.
+- 출처 표기("eat.pl 잇플 · BC카드 결제 데이터 기반") 요청이 있으므로, live 전환 시 화면 표시 여부를 제휴 조건에 맞춘다.
+- 이미 DB(`spots.match`)에 저장된 목업 가게 정보는 그대로 남는다. live 전환 후 다시 매칭하려면 SQL 에서 `update spots set match = null;` 을 실행한다.
 
 ## 운영 원칙 (사생활 보호)
 

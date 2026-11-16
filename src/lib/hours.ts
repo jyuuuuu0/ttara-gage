@@ -27,7 +27,7 @@ const toMin = (hhmm: string) => {
   if (!Number.isFinite(n)) return NaN;
   return Math.floor(n / 100) * 60 + (n % 100);
 };
-const isHoliday = (m: EatplMerchant, day: string) => m.hldyDwk.some((h) => h.startsWith(day));
+const isHoliday = (m: EatplMerchant, day: string) => (m.hldyDwk ?? []).some((h) => h.trim().startsWith(day));
 
 export type OpenState = "open" | "closed" | "holiday" | "unknown";
 
@@ -50,7 +50,7 @@ export function openState(m: EatplMerchant, now = kstNow()): OpenState {
 
 /** 지금이 이 가게의 가장 붐비는 요일+시간대인지 */
 export function isPeakNow(m: EatplMerchant, now = kstNow()): boolean {
-  return m.congestionDwk.startsWith(now.day) && m.congestionTizn === now.slot;
+  return !!m.congestionDwk && m.congestionDwk.trim().startsWith(now.day) && (m.congestionTizn ?? "").trim() === now.slot;
 }
 
 export const formatHHMM = (hhmm: string) =>
