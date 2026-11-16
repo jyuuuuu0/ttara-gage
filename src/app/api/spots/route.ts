@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getUser } from "@/lib/supabase/server";
 import { validateSpotInput } from "@/lib/store/validate";
-import { dbErrorMessage, ensureMatched, loadViewer } from "@/lib/store/spots";
+import { dbErrorMessage, ensureMatched, loadViewer, resolveMerchants } from "@/lib/store/spots";
 import { toSpotDTO } from "@/lib/dto";
 import { unauthorized } from "@/lib/http";
 import type { SpotRow } from "@/lib/store/types";
@@ -35,5 +35,6 @@ export async function POST(req: Request) {
   }
   const spot = data as SpotRow;
   await ensureMatched([spot]);
-  return NextResponse.json({ spot: toSpotDTO(spot, await loadViewer(supabase, user.id, [])) }, { status: 201 });
+  const merchants = await resolveMerchants([spot]);
+  return NextResponse.json({ spot: toSpotDTO(spot, await loadViewer(supabase, user.id, []), merchants.get(spot.id) ?? null) }, { status: 201 });
 }

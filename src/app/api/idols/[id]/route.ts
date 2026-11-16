@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getUser } from "@/lib/supabase/server";
 import { rowToIdol, type IdolRow, type SpotRow } from "@/lib/store/types";
-import { ensureMatched, loadViewer } from "@/lib/store/spots";
+import { ensureMatched, loadViewer, resolveMerchants } from "@/lib/store/spots";
 import { toSpotDTO } from "@/lib/dto";
 import { eatplMode } from "@/lib/eatpl/client";
 import { unauthorized } from "@/lib/http";
@@ -25,9 +25,10 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
     loadViewer(supabase, user?.id ?? null, rows.map((s) => s.id)),
     ensureMatched(rows),
   ]);
+  const merchants = await resolveMerchants(rows);
   return NextResponse.json({
     idol: rowToIdol(idol as IdolRow),
-    spots: rows.map((s) => toSpotDTO(s, viewer)),
+    spots: rows.map((s) => toSpotDTO(s, viewer, merchants.get(s.id) ?? null)),
     mode: eatplMode(),
     signedIn: !!user,
   });

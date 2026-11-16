@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getUser } from "@/lib/supabase/server";
-import { dbErrorMessage, loadViewer } from "@/lib/store/spots";
+import { dbErrorMessage, loadViewer, resolveMerchants } from "@/lib/store/spots";
 import { toSpotDTO } from "@/lib/dto";
 import { unauthorized } from "@/lib/http";
 import type { SpotRow } from "@/lib/store/types";
@@ -24,6 +24,6 @@ export async function POST(_req: Request, { params }: { params: Promise<{ id: st
 
   const { data: spot } = await supabase.from("spots").select().eq("id", id).maybeSingle();
   if (!spot) return NextResponse.json({ error: "성지를 찾을 수 없어요." }, { status: 404 });
-  const viewer = await loadViewer(supabase, user.id, [id]);
-  return NextResponse.json({ spot: toSpotDTO(spot as SpotRow, viewer) });
+  const [viewer, merchants] = await Promise.all([loadViewer(supabase, user.id, [id]), resolveMerchants([spot as SpotRow])]);
+  return NextResponse.json({ spot: toSpotDTO(spot as SpotRow, viewer, merchants.get(id) ?? null) });
 }

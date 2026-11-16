@@ -25,8 +25,8 @@ export interface Viewer {
   flagged: Set<string>;
 }
 
-export function toSpotDTO(s: SpotRow, v: Viewer): SpotDTO {
-  const merchant = s.match?.merchant ?? null;
+/** merchant 는 resolveMerchants 로 방금 조회한 값 (DB에 저장하지 않음) */
+export function toSpotDTO(s: SpotRow, v: Viewer, merchant: EatplMerchant | null = null): SpotDTO {
   return {
     id: s.id,
     placeName: s.place_name,

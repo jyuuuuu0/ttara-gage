@@ -1,6 +1,7 @@
 /** 매출 랭킹 백분위 표기: 1% 미만은 소수점을 살린다 (0.0%로 보이지 않게) */
 export function formatRank(pct: number): string {
   if (!Number.isFinite(pct)) return "-";
+  if (pct <= 0) return "상위 0.01% 미만";
   if (pct < 1) {
     const digits = pct < 0.1 ? 2 : 1;
     return `상위 ${pct.toFixed(digits)}%`;

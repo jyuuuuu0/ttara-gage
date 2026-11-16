@@ -1,30 +1,73 @@
 import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { searchMerchants } from "../eatpl/client";
+import type { EatplMerchant } from "../eatpl/types";
 import { pickBestMatch } from "../match";
+import { districtOf } from "../course";
 import { adminClient } from "../supabase/admin";
 import type { SpotRow, SpotMatch } from "./types";
 import type { Viewer } from "../dto";
 
-/** 아직 매칭 안 한 성지를 가게 정보와 매칭하고 저장 (관리자 키로 기록) */
+const keyOf = (m: SpotMatch | null | undefined) =>
+  m?.key ?? (m?.merchant ? { merNm: m.merchant.merNm, merAddr: m.merchant.merAddr } : null);
+
+/** 동시에 너무 많이 부르지 않도록 n개씩 처리 (프록시 호출 제한 대비) */
+async function mapLimit<T, R>(items: T[], n: number, fn: (t: T) => Promise<R>): Promise<R[]> {
+  const out: R[] = new Array(items.length);
+  let i = 0;
+  await Promise.all(
+    Array.from({ length: Math.min(n, items.length) }, async () => {
+      while (i < items.length) {
+        const idx = i++;
+        out[idx] = await fn(items[idx]);
+      }
+    }),
+  );
+  return out;
+}
+
+/** 아직 매칭 안 한 성지를 잇플 가맹점과 매칭하고, 식별 키만 저장 (관리자 키로 기록) */
 export async function ensureMatched(spots: SpotRow[]): Promise<void> {
   const todo = spots.filter((s) => !s.match);
   if (!todo.length) return;
   const admin = adminClient();
-  await Promise.all(
-    todo.map(async (s) => {
-      try {
-        const candidates = await searchMerchants({ merNm: s.place_name, location: s.location });
-        const best = pickBestMatch(s.place_name, s.location, candidates);
-        const match: SpotMatch = { merchant: best?.merchant ?? null, score: best?.score ?? 0, matchedAt: new Date().toISOString() };
-        const { error } = await admin.from("spots").update({ match }).eq("id", s.id).is("match", null);
-        if (error) throw error;
-        s.match = match;
-      } catch (e) {
-        console.error("[match]", s.place_name, e); // 실패하면 다음 요청에서 다시 시도
-      }
-    }),
-  );
+  await mapLimit(todo, 4, async (s) => {
+    try {
+      const candidates = await searchMerchants({ merNm: s.place_name, location: s.location });
+      const best = pickBestMatch(s.place_name, s.location, candidates);
+      const match: SpotMatch = {
+        key: best ? { merNm: best.merchant.merNm, merAddr: best.merchant.merAddr } : null,
+        score: best?.score ?? 0,
+        matchedAt: new Date().toISOString(),
+      };
+      const { error } = await admin.from("spots").update({ match }).eq("id", s.id).is("match", null);
+      if (error) throw error;
+      s.match = match;
+    } catch (e) {
+      console.error("[match]", s.place_name, e); // 실패하면 다음 요청에서 다시 시도
+    }
+  });
+}
+
+/**
+ * 저장된 키로 가맹점 정보를 다시 조회한다 (같은 조건은 6시간 캐시).
+ * 주소가 같은 가맹점을 우선 고르고, 없으면 이름이 가장 비슷한 곳을 쓴다.
+ */
+export async function resolveMerchants(spots: SpotRow[]): Promise<Map<string, EatplMerchant>> {
+  const result = new Map<string, EatplMerchant>();
+  const targets = spots.map((s) => ({ s, key: keyOf(s.match) })).filter((t) => t.key);
+  await mapLimit(targets, 4, async ({ s, key }) => {
+    try {
+      const items = await searchMerchants({ merNm: key!.merNm, location: districtOf(key!.merAddr) });
+      const exact = items.find((m) => m.merAddr === key!.merAddr && m.merNm === key!.merNm)
+        ?? items.find((m) => m.merAddr === key!.merAddr)
+        ?? pickBestMatch(key!.merNm, districtOf(key!.merAddr), items, 0.8)?.merchant;
+      if (exact) result.set(s.id, exact);
+    } catch (e) {
+      console.error("[resolve]", key!.merNm, e); // 조회 실패 시 그 가게만 정보 없이 보여준다
+    }
+  });
+  return result;
 }
 
 /** 로그인한 사용자가 어떤 성지를 확인/신고했는지 */

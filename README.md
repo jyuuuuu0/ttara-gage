@@ -44,7 +44,14 @@ npm run dev   # http://localhost:3000
 
 `src/lib/eatpl/client.ts` 가 서버에서만 API를 호출한다. 잇플 API는 **사전 등록된 고정 IP** 에서만 호출되므로 브라우저는 항상 `/api/merchants` 같은 Route Handler를 거친다.
 
-### 실제 API로 전환하는 순서
+### 지금 쓰는 방식: K-Skill 공개 프록시 (`EATPL_MODE=kskill`)
+
+BC카드가 오픈소스 프로젝트 K-Skill과 협력해 개인 개발자에게 잇플 API를 열어 두었다. `https://k-skill-proxy.nomadamas.org/v1/bccard-eatpl/search` 를 GET 으로 부르면 되고, 기관코드나 고정 IP가 필요 없다.
+- 같은 조건은 6시간 캐시하고, 동시 호출은 4개로 제한한다 (프록시는 IP당 분당 60회 제한).
+- 공모전 약관(제9조의2 3항)에 따라 잇플 원본 데이터는 DB에 쌓지 않는다. `spots.match` 에는 어느 가맹점인지 식별하는 키(가맹점명·주소)만 저장하고, 영업시간 등은 화면에 보일 때마다 다시 조회한다 (`resolveMerchants`).
+- 실데이터 모드에서는 성지 페이지에 "eat.pl 잇플 · BC카드 결제 데이터 기반" 출처를 표시한다.
+
+### 잇플 API 직접 호출로 전환하는 순서 (`EATPL_MODE=live`, 선택)
 
 1. 제휴 협의 후 **기관명(instNm)** 을 발급받는다. (문의: bcaimerchant@bccard.com)
 2. 고정 IP 서버를 하나 준비한다. (AWS Lightsail/EC2 + 고정 IP 등)

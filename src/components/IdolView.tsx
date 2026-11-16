@@ -158,8 +158,12 @@ export default function IdolView({ id }: { id: string }) {
         </div>
       </section>
 
-      {data.mode === "mock" && (
+      {data.mode === "mock" ? (
         <p className="text-xs text-ink-soft">지금은 예시 가게 데이터로 보여주고 있어요.</p>
+      ) : (
+        <p className="text-xs text-ink-soft">
+          가게 정보: eat.pl 잇플 · BC카드 결제 데이터 기반. 영업시간은 최근 1개월 결제 시각으로 추정한 값이에요.
+        </p>
       )}
 
       <nav className="-mx-4 flex gap-6 overflow-x-auto border-b-2 border-line px-4 lg:mx-0 lg:px-0" role="tablist">
